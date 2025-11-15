@@ -13,9 +13,9 @@ const upload = multer();
 // ---------------------------
 // Config
 // ---------------------------
-const REV_ENDPOINT = "https://dev.my.api.revspire.io/local-upload-chunked";
+const REV_UPLOAD_ENDPOINT = "https://dev.my.api.revspire.io/local-upload-chunked";
 const AI_SUMMARY_ENDPOINT = "https://dev.my.api.revspire.io/get-content-ai-summary";
-const N8N_WEBHOOK = "https://appgcp15nov.app.n8n.cloud/webhook-test/video-analysis"; // replace with your webhook
+const N8N_WEBHOOK = "https://your-n8n-instance.com/webhook/ai-summary"; // replace
 const API_KEY = "AIzaSyCVPno_o9cQ1V0t_Bm-ZUlbwEGlFZkofrc";
 
 const META = {
@@ -40,18 +40,18 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       contentType: req.file.mimetype
     });
 
-    console.log("📩 Sending file to REV API...");
-    const revResponse = await fetch(REV_ENDPOINT, {
+    console.log("📩 Sending file to Revspire API...");
+    const revResp = await fetch(REV_UPLOAD_ENDPOINT, {
       method: "POST",
       headers: { "x-api-key": API_KEY },
       body: form
     });
 
-    const revData = await revResponse.json();
+    const revData = await revResp.json();
     console.log("✅ Upload Response:", revData);
 
     const contentId = revData?.uploadedFiles?.[0]?.contentId;
-    if (!contentId) return res.status(500).json({ error: "No contentId returned" });
+    if (!contentId) return res.status(500).json({ error: "No contentId returned from API" });
 
     res.json({ status: "uploaded", contentId, revResponse: revData });
 
@@ -62,7 +62,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 // ---------------------------
-// AI Summary route
+// Summary route
 // ---------------------------
 app.post("/summary", async (req, res) => {
   const { content_id, viewer_id, organisation_id } = req.body;
@@ -72,44 +72,44 @@ app.post("/summary", async (req, res) => {
   }
 
   try {
-    const body = { content_id, viewer_id, organisation_id };
-    console.log("⏳ Fetching AI summary for content:", content_id);
-
     const summaryResp = await fetch(AI_SUMMARY_ENDPOINT, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": API_KEY
-  },
-  body: JSON.stringify({ content_id, viewer_id, organisation_id })
-});
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY
+      },
+      body: JSON.stringify({ content_id, viewer_id, organisation_id })
+    });
 
-const text = await summaryResp.text();   // get raw response
-console.log("RAW AI SUMMARY RESPONSE:", text);
+    const text = await summaryResp.text(); // get raw response
+    console.log("RAW AI SUMMARY RESPONSE:", text);
 
+    let summaryData;
+    try {
+      summaryData = JSON.parse(text);
+    } catch (err) {
+      console.error("⚠ Failed to parse JSON (likely HTML error):", err);
+      return res.status(500).send("Error fetching AI summary. Check backend logs.");
+    }
 
-let summaryData;
-try {
-  summaryData = JSON.parse(text);
-} catch(err){
-  console.error("⚠ Failed to parse JSON (likely HTML error):", err);
-  return res.status(500).send("Error fetching AI summary. See backend logs.");
-}
+    console.log("📝 Parsed AI summary:", summaryData);
 
-console.log("📝 Parsed AI summary JSON:", summaryData);
-       res.json({
-    status: 'ready',
-    summaryText: summaryData.summary || summaryData // adjust based on your API response
-        });
+    // Fire-and-forget to n8n webhook
+    fetch(N8N_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content_id, summaryData })
+    }).catch(err => console.error("⚠ Failed to send to n8n:", err));
 
-res.json(summaryData);
-        
- 
-
+    // Send summary to frontend
+    return res.json({
+      status: "ready",
+      summaryText: summaryData.summary || summaryData
+    });
 
   } catch (err) {
     console.error("⚠ Error fetching AI summary:", err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
