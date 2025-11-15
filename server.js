@@ -100,43 +100,43 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
 
 
-app.post("/summary", async (req, res) => {
-  const { content_id, viewer_id, organisation_id } = req.body;
+// app.post("/summary", async (req, res) => {
+//   const { content_id, viewer_id, organisation_id } = req.body;
 
-  if (!content_id || !viewer_id || !organisation_id) {
-    return res.status(400).json({ error: "Missing required parameters" });
-  }
+//   if (!content_id || !viewer_id || !organisation_id) {
+//     return res.status(400).json({ error: "Missing required parameters" });
+//   }
 
-  try {
-    const body = { content_id, viewer_id, organisation_id };
+//   try {
+//     const body = { content_id, viewer_id, organisation_id };
 
-    console.log("⏳ Fetching AI summary for content:", content_id);
+//     console.log("⏳ Fetching AI summary for content:", content_id);
 
-    const summaryResp = await fetch("https://dev.my.api.revspire.io/get-content-ai-summary", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY  // same key as before
-      },
-      body: JSON.stringify(body)
-    });
+//     const summaryResp = await fetch("https://dev.my.api.revspire.io/get-content-ai-summary", {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "x-api-key": API_KEY  // same key as before
+//       },
+//       body: JSON.stringify(body)
+//     });
 
-    const summaryData = await summaryResp.json();
+//     const summaryData = await summaryResp.json();
 
-    console.log("📝 AI Summary fetched:", summaryData);
+//     console.log("📝 AI Summary fetched:", summaryData);
 
-    // optionally forward to n8n webhook
-    await fetch(N8N_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content_id, summaryData })
-    });
-    console.log("🚀 Sent summary to n8n");
+//     // optionally forward to n8n webhook
+//     await fetch(N8N_WEBHOOK, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ content_id, summaryData })
+//     });
+//     console.log("🚀 Sent summary to n8n");
 
-    res.json(summaryData);
+//     res.json(summaryData);
 
-  } catch (err) {
-    console.error("⚠ Error fetching AI summary:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
+//   } catch (err) {
+//     console.error("⚠ Error fetching AI summary:", err);
+//     res.status(500).json({ error: err.message });
+//   }
+// });
