@@ -87,6 +87,7 @@ app.post("/summary", async (req, res) => {
 const text = await summaryResp.text();   // get raw response
 console.log("RAW AI SUMMARY RESPONSE:", text);
 
+
 let summaryData;
 try {
   summaryData = JSON.parse(text);
@@ -97,6 +98,12 @@ try {
 
 console.log("📝 Parsed AI summary JSON:", summaryData);
 res.json(summaryData);
+        
+    res.json({
+  status: 'ready',
+  summaryText: summaryData.summary || summaryData // adjust based on your API response
+});
+
 
 
   } catch (err) {
