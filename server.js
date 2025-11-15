@@ -10,6 +10,9 @@ app.use(express.json());
 
 const upload = multer();
 
+
+
+
 const REV_ENDPOINT = "https://dev.my.api.revspire.io/local-upload-chunked";
 const AI_SUMMARY_ENDPOINT = "https://dev.my.api.revspire.io/get-content-ai-summary";
 const N8N_WEBHOOK = "https://your-n8n-instance.com/webhook/ai-summary";
@@ -91,6 +94,49 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
   } catch (err) {
     console.error("🔥 Upload failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+app.post("/summary", async (req, res) => {
+  const { content_id, viewer_id, organisation_id } = req.body;
+
+  if (!content_id || !viewer_id || !organisation_id) {
+    return res.status(400).json({ error: "Missing required parameters" });
+  }
+
+  try {
+    const body = { content_id, viewer_id, organisation_id };
+
+    console.log("⏳ Fetching AI summary for content:", content_id);
+
+    const summaryResp = await fetch("https://dev.my.api.revspire.io/get-content-ai-summary", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY  // same key as before
+      },
+      body: JSON.stringify(body)
+    });
+
+    const summaryData = await summaryResp.json();
+
+    console.log("📝 AI Summary fetched:", summaryData);
+
+    // optionally forward to n8n webhook
+    await fetch(N8N_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content_id, summaryData })
+    });
+    console.log("🚀 Sent summary to n8n");
+
+    res.json(summaryData);
+
+  } catch (err) {
+    console.error("⚠ Error fetching AI summary:", err);
     res.status(500).json({ error: err.message });
   }
 });
