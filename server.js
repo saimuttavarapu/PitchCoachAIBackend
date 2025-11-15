@@ -97,13 +97,14 @@ try {
 }
 
 console.log("📝 Parsed AI summary JSON:", summaryData);
+       res.json({
+    status: 'ready',
+    summaryText: summaryData.summary || summaryData // adjust based on your API response
+        });
+
 res.json(summaryData);
         
-    res.json({
-  status: 'ready',
-  summaryText: summaryData.summary || summaryData // adjust based on your API response
-});
-
+ 
 
 
   } catch (err) {
