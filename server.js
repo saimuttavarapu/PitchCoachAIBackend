@@ -53,6 +53,26 @@ app.post("/upload", upload.single("video"), async (req, res) => {
 
     const data = await response.json();
 
+
+
+
+     // 🟩 LOG CONTENT ID TO SERVER
+    try {
+      const uploaded = data?.uploadedFiles?.[0];
+      if (uploaded?.contentId) {
+        console.log("🔥 Uploaded Content ID:", uploaded.contentId);
+      } else {
+        console.log("⚠ No contentId returned:", data);
+      }
+    } catch (err) {
+      console.log("⚠ Could not extract contentId:", err);
+    }
+
+
+
+
+    
+
     return res.json({
       success: true,
       revspire_response: data,
