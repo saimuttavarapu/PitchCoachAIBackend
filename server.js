@@ -76,26 +76,28 @@ app.post("/summary", async (req, res) => {
     console.log("⏳ Fetching AI summary for content:", content_id);
 
     const summaryResp = await fetch(AI_SUMMARY_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY
-      },
-      body: JSON.stringify(body)
-    });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": API_KEY
+  },
+  body: JSON.stringify({ content_id, viewer_id, organisation_id })
+});
 
-    const summaryData = await summaryResp.json();
-    console.log("📝 AI Summary fetched:", summaryData);
+const text = await summaryResp.text();   // get raw response
+console.log("RAW AI SUMMARY RESPONSE:", text);
 
-    // Forward to n8n webhook
-    await fetch(N8N_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content_id, summaryData })
-    });
-    console.log("🚀 Sent summary to n8n");
+let summaryData;
+try {
+  summaryData = JSON.parse(text);
+} catch(err){
+  console.error("⚠ Failed to parse JSON (likely HTML error):", err);
+  return res.status(500).send("Error fetching AI summary. See backend logs.");
+}
 
-    res.json(summaryData);
+console.log("📝 Parsed AI summary JSON:", summaryData);
+res.json(summaryData);
+
 
   } catch (err) {
     console.error("⚠ Error fetching AI summary:", err);
